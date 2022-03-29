@@ -1,0 +1,3 @@
+/g/g92/ssriniv/asyncSCC/src/CMakeFiles/rebuild_cache.dir
+/g/g92/ssriniv/asyncSCC/src/CMakeFiles/edit_cache.dir
+/g/g92/ssriniv/asyncSCC/src/CMakeFiles/howdy.dir

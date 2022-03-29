@@ -1,0 +1,10 @@
+#include <fstream>
+#include <vector>
+#include <unordered_set>
+#include<sys/mman.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+
+void read_cc_map(char* argv[]){
+	std::cout<<"yo";
+}
