@@ -1,6 +1,8 @@
+#include "common.h"
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unordered_set>
@@ -38,12 +40,26 @@ const char *get_file_map_info(const char *fname, size_t &num_bytes, int rank) {
   return addr;
 }
 
-void read_cc_map(char *argv[], int rank) {
-  char letter = '\0'; // 47
-  int char_count = 0; // 48 keeps track of number of characters in each file
-  int lineno = 0;
-  size_t num_bytes_partition = 0; // 14
-  char *buffer = new char[64]();
-  const char *partition_pointer =
-      get_file_map_info(argv[2], num_bytes_partition, rank);
+int read_cc_map(char *argv[], int rank) {
+  std::ifstream MapFile;
+  MapFile.open(argv[2]);
+  std::string line;
+  if (!MapFile.is_open()) {
+    std::cerr << "Could not open the file - '" << argv[2] << "'" << std::endl;
+    return EXIT_FAILURE;
+  }
+  for (int lineno = 0; std::getline(MapFile, line); lineno++) {
+    if (lineno == rank) {
+      std::istringstream ss(line);
+      std::vector<int> temp_vec;
+      int x;
+      while (ss >> x) {
+        temp_vec.push_back(x);
+      }
+      meta_vertex_t.vertices = temp_vec;
+    }
+    // if (rank == 0)
+    //   std::cout << lineno << " : " << line << std::endl;
+  }
+  return 0;
 }

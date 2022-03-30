@@ -16,8 +16,12 @@ int main(int argc, char **argv) {
               << " that read: \"" << str << "\"" << std::endl;
   };
 
-  if (world.rank() == 0) {
-    read_cc_map(argv, world.rank());
+  read_cc_map(argv, world.rank());
+
+  if (world.rank() == 2) {
+    std::cout << meta_vertex_t.vertices[0] << " " << meta_vertex_t.vertices[1]
+              << " " << meta_vertex_t.vertices[2] << std::endl;
   }
+
   return 0;
 }
