@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: MIT
 
 #include "reader.cpp"
-#include <ygm/comm.hpp>
 
 int main(int argc, char **argv) {
   ygm::comm world(&argc, &argv);
@@ -16,11 +15,20 @@ int main(int argc, char **argv) {
               << " that read: \"" << str << "\"" << std::endl;
   };
 
-  read_cc_map(argv, world.rank());
+  // Init distributed containers
+  ygm::container::map<int, int> mv_map(world);
+  ygm::container::disjoint_set<std::pair<int, int>> connected_components(world);
+
+  auto favorites_lambda = [](auto mv_map, const int favorite_num) {
+    std::cout << "My favorite animal is a " << mv_map.first << ". It says '"
+              << mv_map.second << "!' My rank is " << favorite_num << std::endl;
+  };
+
+  read_cc_map(argv, world.rank(), mv_map);
+  read_change_set(argv, mv_map, connected_components, world.rank());
 
   if (world.rank() == 2) {
-    std::cout << meta_vertex_t.vertices[0] << " " << meta_vertex_t.vertices[1]
-              << " " << meta_vertex_t.vertices[2] << std::endl;
+    // mv_map.async_visit(4, favorites_lambda, world.rank());
   }
 
   return 0;

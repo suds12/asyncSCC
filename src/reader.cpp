@@ -1,4 +1,5 @@
 #include "common.h"
+#include "update.cpp"
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
@@ -7,6 +8,9 @@
 #include <sys/stat.h>
 #include <unordered_set>
 #include <vector>
+#include <ygm/comm.hpp>
+#include <ygm/container/disjoint_set.hpp>
+#include <ygm/container/map.hpp>
 
 // This function is for memory mapping. Each reading function would call this
 // with their respective files as arg1
@@ -39,8 +43,36 @@ const char *get_file_map_info(const char *fname, size_t &num_bytes, int rank) {
 
   return addr;
 }
+int read_change_set(char *argv[], auto &mv_map, auto &connected_components,
+                    int rank) {
 
-int read_cc_map(char *argv[], int rank) {
+  //---visitor lambda---------
+  auto make_meta_edge = [](auto mv_pair, int from) {
+    std::cout << "Making meta edge between " << from << " and "
+              << mv_pair.second << std::endl;
+    // connected_components.async_union(from, mv_pair.second);
+  };
+  //------------------
+  std::ifstream ChangeFile;
+  ChangeFile.open(argv[3]);
+  std::string line;
+  if (!ChangeFile.is_open()) {
+    std::cerr << "Could not open the file - '" << argv[3] << "'" << std::endl;
+    return EXIT_FAILURE;
+  }
+  for (int lineno = 0; std::getline(ChangeFile, line); lineno++) {
+    std::istringstream ss(line);
+    int node1, node2;
+    ss >> node1;
+    ss >> node2;
+    if (meta_vertex_t.vertices.find(node1) != meta_vertex_t.vertices.end()) {
+      mv_map.async_visit(node2, make_meta_edge, rank);
+    }
+  }
+  return 0;
+}
+
+int read_cc_map(char *argv[], int rank, ygm::container::map<int, int> &mv_map) {
   std::ifstream MapFile;
   MapFile.open(argv[2]);
   std::string line;
@@ -51,12 +83,11 @@ int read_cc_map(char *argv[], int rank) {
   for (int lineno = 0; std::getline(MapFile, line); lineno++) {
     if (lineno == rank) {
       std::istringstream ss(line);
-      std::vector<int> temp_vec;
       int x;
       while (ss >> x) {
-        temp_vec.push_back(x);
+        meta_vertex_t.vertices.insert(x);
+        mv_map.async_insert(x, lineno);
       }
-      meta_vertex_t.vertices = temp_vec;
     }
     // if (rank == 0)
     //   std::cout << lineno << " : " << line << std::endl;
