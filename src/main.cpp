@@ -16,8 +16,11 @@ int main(int argc, char **argv) {
   };
 
   // Init distributed containers
+  // ygm::container::set<std::pair<int, int>> me_set;
   ygm::container::map<int, int> mv_map(world);
-  ygm::container::disjoint_set<std::pair<int, int>> connected_components(world);
+  ygm::container::disjoint_set<int> connected_components(world);
+  auto cc_ptr = connected_components.get_ygm_ptr();
+  auto mv_map_ptr = mv_map.get_ygm_ptr();
 
   auto favorites_lambda = [](auto mv_map, const int favorite_num) {
     std::cout << "My favorite animal is a " << mv_map.first << ". It says '"
@@ -25,11 +28,16 @@ int main(int argc, char **argv) {
   };
 
   read_cc_map(argv, world.rank(), mv_map);
-  read_change_set(argv, mv_map, connected_components, world.rank());
+  read_change_set(argv, mv_map_ptr, cc_ptr, world.rank());
 
   if (world.rank() == 2) {
     // mv_map.async_visit(4, favorites_lambda, world.rank());
   }
+
+  world.barrier();
+  connected_components.for_all([](auto k) {
+    std::cout << "component : " << k.first << " -> " << k.second << std::endl;
+  });
 
   return 0;
 }

@@ -1,16 +1,23 @@
 #include "common.h"
 #include "update.cpp"
+#include <cereal/archives/json.hpp>
+#include <cereal/types/utility.hpp>
 #include <fcntl.h>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 #include <ygm/comm.hpp>
+#include <ygm/container/detail/hash_partitioner.hpp>
 #include <ygm/container/disjoint_set.hpp>
 #include <ygm/container/map.hpp>
+#include <ygm/container/set.hpp>
+#include <ygm/detail/ygm_ptr.hpp>
 
 // This function is for memory mapping. Each reading function would call this
 // with their respective files as arg1
@@ -43,14 +50,15 @@ const char *get_file_map_info(const char *fname, size_t &num_bytes, int rank) {
 
   return addr;
 }
-int read_change_set(char *argv[], auto &mv_map, auto &connected_components,
-                    int rank) {
+int read_change_set(char *argv[], auto &mv_map_ptr, auto &cc_ptr, int rank) {
 
   //---visitor lambda---------
-  auto make_meta_edge = [](auto mv_pair, int from) {
+  auto make_meta_edge = [](auto mv_pair, int from, auto &cc_ptr) {
     std::cout << "Making meta edge between " << from << " and "
               << mv_pair.second << std::endl;
-    // connected_components.async_union(from, mv_pair.second);
+    // auto meta_edge = std::make_pair(from, mv_pair.second);
+    // me_set.
+    cc_ptr->async_union(from, mv_pair.second);
   };
   //------------------
   std::ifstream ChangeFile;
@@ -66,7 +74,7 @@ int read_change_set(char *argv[], auto &mv_map, auto &connected_components,
     ss >> node1;
     ss >> node2;
     if (meta_vertex_t.vertices.find(node1) != meta_vertex_t.vertices.end()) {
-      mv_map.async_visit(node2, make_meta_edge, rank);
+      mv_map_ptr->async_visit(node2, make_meta_edge, rank, cc_ptr);
     }
   }
   return 0;
