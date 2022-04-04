@@ -54,7 +54,7 @@ int read_change_set(char *argv[], auto &mv_map_ptr, auto &cc_ptr, int rank) {
 
   //---visitor lambda---------
   auto make_meta_edge = [](auto mv_pair, int from, auto &cc_ptr) {
-    std::cout << "Making meta edge between " << from << " and "
+    std::cout << "Merging meta edge between " << from << " and "
               << mv_pair.second << std::endl;
     // auto meta_edge = std::make_pair(from, mv_pair.second);
     // me_set.
@@ -79,6 +79,8 @@ int read_change_set(char *argv[], auto &mv_map_ptr, auto &cc_ptr, int rank) {
   }
   return 0;
 }
+
+int check_range(char *argv[], int rank) {}
 
 int read_cc_map(char *argv[], int rank, ygm::container::map<int, int> &mv_map) {
   std::ifstream MapFile;
