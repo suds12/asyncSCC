@@ -11,4 +11,6 @@
 class MetaVertex {
 public:
   std::set<int> vertices;
+  std::set<int> owened_colors;
+
 } meta_vertex_t;

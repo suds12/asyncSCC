@@ -1,5 +1,5 @@
+#pragma once
 #include "common.h"
-#include "update.cpp"
 #include <cereal/archives/json.hpp>
 #include <cereal/types/utility.hpp>
 #include <fcntl.h>
@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <ygm/container/map.hpp>
 
 // This function is for memory mapping. Each reading function would call this
 // with their respective files as arg1
@@ -73,8 +74,28 @@ int read_change_set(char *argv[], auto &mv_map_ptr, auto &cc_ptr, int rank) {
   }
   return 0;
 }
-// REmove argv and encapsulate it
-int read_cc_map(char *argv[], int rank, ygm::container::map<int, int> &mv_map) {
+
+int read_partition(char *argv[], int rank) {
+  std::ifstream PartFile;
+  PartFile.open(argv[1]);
+  std::string line;
+  if (!PartFile.is_open()) {
+    std::cerr << "Could not open the file - '" << argv[1] << "'" << std::endl;
+    return EXIT_FAILURE;
+  }
+  for (int lineno = 0; std::getline(PartFile, line); lineno++) {
+    if (lineno == rank) {
+      std::istringstream ss(line);
+      int x;
+      while (ss >> x) {
+        meta_vertex_t.owened_colors.insert(x);
+      }
+    }
+  }
+  return 0;
+}
+
+int read_color_map(char *argv[], int rank, auto &color_map) {
   std::ifstream MapFile;
   MapFile.open(argv[2]);
   std::string line;
@@ -83,12 +104,13 @@ int read_cc_map(char *argv[], int rank, ygm::container::map<int, int> &mv_map) {
     return EXIT_FAILURE;
   }
   for (int lineno = 0; std::getline(MapFile, line); lineno++) {
-    if (lineno == rank) {
+    if (meta_vertex_t.owened_colors.find(lineno) !=
+        meta_vertex_t.owened_colors.end()) {
       std::istringstream ss(line);
       int x;
       while (ss >> x) {
         meta_vertex_t.vertices.insert(x);
-        mv_map.async_insert(x, lineno);
+        color_map->async_insert_if_missing(x, lineno);
       }
     }
     // if (rank == 0)
