@@ -45,15 +45,14 @@ const char *get_file_map_info(const char *fname, size_t &num_bytes, int rank) {
 
   return addr;
 }
-int read_change_set(char *argv[], auto &mv_map_ptr, auto &cc_ptr, int rank) {
+int read_change_set(char *argv[], auto &color_map, auto &me_set_ptr, int rank) {
 
   //---visitor lambda---------
-  auto make_meta_edge = [](auto mv_pair, int from, auto &cc_ptr) {
-    std::cout << "Merging meta edge between " << from << " and "
-              << mv_pair.second << std::endl;
+  auto visitor_get_info = [](auto mv_pair, int from, auto &me_set_ptr) {
+    std::cout << "sending back info to " << from << std::endl;
     // auto meta_edge = std::make_pair(from, mv_pair.second);
-    // me_set.
-    cc_ptr->async_union(from, mv_pair.second);
+    auto temp = std::make_pair(from, mv_pair.second);
+    me_set_ptr->insert(mv_pair.second);
   };
   //------------------
   std::ifstream ChangeFile;
@@ -68,8 +67,9 @@ int read_change_set(char *argv[], auto &mv_map_ptr, auto &cc_ptr, int rank) {
     int node1, node2;
     ss >> node1;
     ss >> node2;
-    if (meta_vertex_t.vertices.find(node1) != meta_vertex_t.vertices.end()) {
-      mv_map_ptr->async_visit(node2, make_meta_edge, rank, cc_ptr);
+    if (rank_info.vertices.find(node2) != rank_info.vertices.end()) {
+      color_map->async_visit(node1, visitor_get_info, rank, me_set_ptr);
+      // world.async()
     }
   }
   return 0;
@@ -88,7 +88,7 @@ int read_partition(char *argv[], int rank) {
       std::istringstream ss(line);
       int x;
       while (ss >> x) {
-        meta_vertex_t.owened_colors.insert(x);
+        rank_info.owned_colors.insert(x);
       }
     }
   }
@@ -104,13 +104,12 @@ int read_color_map(char *argv[], int rank, auto &color_map) {
     return EXIT_FAILURE;
   }
   for (int lineno = 0; std::getline(MapFile, line); lineno++) {
-    if (meta_vertex_t.owened_colors.find(lineno) !=
-        meta_vertex_t.owened_colors.end()) {
+    if (rank_info.owned_colors.find(lineno) != rank_info.owned_colors.end()) {
       std::istringstream ss(line);
       int x;
       while (ss >> x) {
-        meta_vertex_t.vertices.insert(x);
-        color_map->async_insert_if_missing(x, lineno);
+        rank_info.vertices.insert(x);
+        color_map->async_insert_if_missing(x, lineno); // vertex : color mapping
       }
     }
     // if (rank == 0)

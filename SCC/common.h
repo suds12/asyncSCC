@@ -11,6 +11,7 @@
 class MetaVertex {
 public:
   std::set<int> vertices;
-  std::set<int> owened_colors;
+  std::set<int> owned_colors;
+  std::set<std::pair<int, int>> owned_outgoing_ME;
 
-} meta_vertex_t;
+} rank_info;
